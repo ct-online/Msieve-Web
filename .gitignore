@@ -1,0 +1,6 @@
+*.o
+*.no
+*.qo
+*.a
+*.bc
+/build

@@ -19,6 +19,7 @@ $Id: demo.c 984 2015-03-28 16:26:48Z jasonp_sf $
 #include <mpi.h>
 #endif
 
+extern void publishFactor(uint factor_type, char *factor_number);
 msieve_obj *g_curr_factorization = NULL;
 
 /*--------------------------------------------------------------------*/
@@ -240,13 +241,15 @@ void factor_integer(char *buf, uint32 flags,
 	/* If no logging is specified, at least print out the
 	   factors that were found */
 
-	if (!(g_curr_factorization->flags & (MSIEVE_FLAG_USE_LOGFILE |
+	if (1 || !(g_curr_factorization->flags & (MSIEVE_FLAG_USE_LOGFILE |
 					MSIEVE_FLAG_LOG_TO_STDOUT))) {
 		factor = g_curr_factorization->factors;
 
 		printf("\n");
 		printf("%s\n", buf);
 		while (factor != NULL) {
+			publishFactor(factor->factor_type, factor->number);
+
 			char *factor_type;
 
 			if (factor->factor_type == MSIEVE_PRIME)
@@ -306,9 +309,9 @@ void *countdown_thread(void *pminutes) {
 #endif
 
 /*--------------------------------------------------------------------*/
-int main(int argc, char **argv) {
+int sieve(char *input) {
 
-	char buf[500];
+	char *buf = input;
 	uint32 seed1, seed2;
 	char *savefile_name = NULL;
 	char *logfile_name = NULL;
@@ -349,203 +352,6 @@ int main(int argc, char **argv) {
 #endif
 
 	flags = MSIEVE_FLAG_USE_LOGFILE;
-
-	i = 1;
-	buf[0] = 0;
-	while (i < argc) {
-		if (argv[i][0] == (char)('-')) {
-			switch(argv[i][1]) {
-			case 'h':
-			case '?':
-				print_usage(argv[0]);
-				return 0;
-
-			case 'i':
-			case 's':
-			case 'l':
-				if (i + 1 < argc && argv[i+1][0] != '-') {
-					if (tolower(argv[i][1]) == 'i')
-						infile_name = argv[i+1];
-					else if (tolower(argv[i][1]) == 's') {
-						char *p;
-						savefile_name = argv[i+1];
-						if((p=strstr(savefile_name, ".gz"))) {
-							savefile_name = strdup(argv[i+1]);
-							savefile_name[p-argv[i+1]] = 0;
-						}
-					} 
-					else {
-						logfile_name = argv[i+1];
-					}
-					i += 2;
-				}
-				else {
-					print_usage(argv[0]);
-					return -1;
-				}
-				break;
-					
-			case 'm':
-				manual_mode = 1;
-				i++;
-				break;
-
-			case 'e':
-				flags |= MSIEVE_FLAG_DEEP_ECM;
-				i++;
-				break;
-
-			case 'z':
-				flags |= MSIEVE_FLAG_NFS_ONLY;
-				i++;
-				break;
-
-			case 'n': 
-				switch (argv[i][2]) {
-				case 0:
-					flags |= MSIEVE_FLAG_NFS_POLY1 |
-						 MSIEVE_FLAG_NFS_POLYSIZE |
-						 MSIEVE_FLAG_NFS_POLYROOT |
-						 MSIEVE_FLAG_NFS_SIEVE |
-						 MSIEVE_FLAG_NFS_FILTER |
-						 MSIEVE_FLAG_NFS_LA |
-						 MSIEVE_FLAG_NFS_SQRT;
-					break;
-
-				case 'f':
-					break;
-
-				case 'p':
-					if (argv[i][3] == '1')
-						flags |= MSIEVE_FLAG_NFS_POLY1;
-					else if (argv[i][3] == 's')
-						flags |= MSIEVE_FLAG_NFS_POLYSIZE;
-					else if (argv[i][3] == 'r')
-						flags |= MSIEVE_FLAG_NFS_POLYROOT;
-					else
-						flags |= MSIEVE_FLAG_NFS_POLY1 |
-							 MSIEVE_FLAG_NFS_POLYSIZE |
-							 MSIEVE_FLAG_NFS_POLYROOT;
-					break;
-				
-				case 's':
-					flags |= MSIEVE_FLAG_NFS_SIEVE;
-					break;
-
-				case 'c':
-					switch (argv[i][3]) {
-					case 0:
-						flags |= MSIEVE_FLAG_NFS_FILTER |
-						         MSIEVE_FLAG_NFS_LA |
-						         MSIEVE_FLAG_NFS_SQRT;
-						break;
-
-					case '1':
-						flags |= MSIEVE_FLAG_NFS_FILTER;
-						break;
-
-					case 'r':
-						flags |= MSIEVE_FLAG_NFS_LA_RESTART;
-					case '2': /* fall through */
-						flags |= MSIEVE_FLAG_NFS_LA;
-						break;
-
-					case '3':
-						flags |= MSIEVE_FLAG_NFS_SQRT;
-						break;
-					}
-					break;
-
-				default:
-					print_usage(argv[0]);
-					return -1;
-				}
-
-				if (i + 1 < argc && argv[i+1][0] != '-') {
-					if (argv[i][2] == 'f')
-						nfs_fbfile_name = argv[++i];
-					else
-						nfs_args = argv[++i];
-				}
-				i++;
-				break;
-					
-			case 'q':
-				flags &= ~(MSIEVE_FLAG_USE_LOGFILE |
-					   MSIEVE_FLAG_LOG_TO_STDOUT);
-				i++;
-				break;
-					
-			case 'd':
-				if (i + 1 < argc && isdigit(argv[i+1][0])) {
-					deadline = atol(argv[i+1]);
-					i += 2;
-				}
-				else {
-					print_usage(argv[0]);
-					return -1;
-				}
-				break;
-					
-			case 'r':
-				if (i + 1 < argc && isdigit(argv[i+1][0])) {
-					max_relations = atol(argv[i+1]);
-					i += 2;
-				}
-				else {
-					print_usage(argv[0]);
-					return -1;
-				}
-				break;
-					
-			case 't':
-				if (i + 1 < argc && isdigit(argv[i+1][0])) {
-					num_threads = atol(argv[i+1]);
-					i += 2;
-				}
-				else {
-					print_usage(argv[0]);
-					return -1;
-				}
-				break;
-#ifdef HAVE_CUDA					
-			case 'g':
-				if (i + 1 < argc && isdigit(argv[i+1][0])) {
-					which_gpu = atol(argv[i+1]);
-					i += 2;
-				}
-				else {
-					print_usage(argv[0]);
-					return -1;
-				}
-				break;
-#endif					
-			case 'c':
-				flags |= MSIEVE_FLAG_SKIP_QS_CYCLES;
-				i++;
-				break;
-
-			case 'v':
-				flags |= MSIEVE_FLAG_LOG_TO_STDOUT;
-				i++;
-				break;
-
-			case 'p':
-				set_idle_priority();
-				i++;
-				break;
-
-			default:
-				print_usage(argv[0]);
-				return -1;
-			}
-		}
-		else {
-			if (isdigit(argv[i][0]) || argv[i][0] == '(' )
-				strncpy(buf, argv[i], sizeof(buf));
-			i++;
-		}
-	}
 
 	get_random_seeds(&seed1, &seed2);
 

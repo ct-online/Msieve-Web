@@ -15,6 +15,8 @@ $Id: sieve.c 820 2012-11-17 03:26:17Z jasonp_sf $
 #include <common.h>
 #include "mpqs.h"
 
+extern void publishState(uint32 num_relations, uint32 full_relations, uint32 combined_relations, uint32 partial_relations, uint32 max_relations);
+
 static void collect_relations(sieve_conf_t *conf,
 			      uint32 target_relations,
 			      qs_core_sieve_fcn core_sieve_fcn);
@@ -617,6 +619,13 @@ static uint32 do_sieving_internal(sieve_conf_t *conf,
 
 	    	if (obj->flags & (MSIEVE_FLAG_USE_LOGFILE |
 	    		   	  MSIEVE_FLAG_LOG_TO_STDOUT)) {
+			publishState(
+					num_relations,
+					conf->num_relations,
+					conf->num_cycles +
+					conf->components - conf->vertices,
+					conf->num_cycles,
+					max_relations);
 			fprintf(stderr, "%u relations (%u full + "
 				"%u combined from %u partial), need %u\r",
 					num_relations,

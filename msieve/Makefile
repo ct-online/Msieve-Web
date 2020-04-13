@@ -18,7 +18,7 @@ WIN64 = 0
 
 # gcc with basic optimization (-march flag could
 # get overridden by architecture-specific builds)
-CC = gcc
+#CC = emcc
 WARN_FLAGS = -Wall -W
 OPT_FLAGS = -O3 -fomit-frame-pointer -march=native \
 	    -D_FILE_OFFSET_BITS=64 -DNDEBUG -D_LARGEFILE64_SOURCE
@@ -31,7 +31,7 @@ endif
 
 CFLAGS = $(OPT_FLAGS) $(MACHINE_FLAGS) $(WARN_FLAGS) \
 	 	-DMSIEVE_SVN_VERSION="\"$(SVN_VERSION)\"" \
-		-I. -Iaprcl -Iinclude -Ignfs -Ignfs/poly -Ignfs/poly/stage1
+		-I. -Iaprcl -Iinclude -Ignfs -Ignfs/poly -Ignfs/poly/stage1 -s ALLOW_MEMORY_GROWTH=1
 
 # tweak the compile flags
 
@@ -81,6 +81,8 @@ else
 	LIBS += -lz
 endif
 
+LIBS += -L$(GMP_LIBS)
+CFLAGS += -I$(GMP_INCLUDES)
 
 # Note to MinGW users: the library does not use pthreads calls in
 # win32 or win64, so it's safe to pull libpthread into the link line.
@@ -272,10 +274,12 @@ help:
 
 all: $(COMMON_OBJS) $(QS_OBJS) $(NFS_OBJS) $(GPU_OBJS)
 	rm -f libmsieve.a
-	ar r libmsieve.a $(COMMON_OBJS) $(QS_OBJS) $(NFS_OBJS)
-	ranlib libmsieve.a
-	$(CC) $(CFLAGS) demo.c -o msieve $(LDFLAGS) \
+	$(AR) r libmsieve.a $(COMMON_OBJS) $(QS_OBJS) $(NFS_OBJS)
+	$(RANLIB) libmsieve.a
+	$(CC) $(CFLAGS) demo.c -o msieve.bc $(LDFLAGS) \
 			libmsieve.a $(LIBS)
+	mkdir ../build
+	$(CC) -O3 msieve.bc -o ../build/msieve.js -s ALLOW_MEMORY_GROWTH=1 -s NO_EXIT_RUNTIME=1 -s EXPORTED_FUNCTIONS='["_sieve", "_exit"]' -s EXTRA_EXPORTED_RUNTIME_METHODS='["ccall", "cwrap"]' --js-library ../msieveweb_lib.js
 
 clean:
 	cd cub && make clean WIN=$(WIN) WIN64=$(WIN64) && cd ..
