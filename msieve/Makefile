@@ -278,7 +278,7 @@ all: $(COMMON_OBJS) $(QS_OBJS) $(NFS_OBJS) $(GPU_OBJS)
 	$(RANLIB) libmsieve.a
 	$(CC) $(CFLAGS) demo.c -o msieve.bc $(LDFLAGS) \
 			libmsieve.a $(LIBS)
-	mkdir ../build
+	mkdir -p ../build
 	$(CC) -O3 msieve.bc -o ../build/msieve.js -s ALLOW_MEMORY_GROWTH=1 -s NO_EXIT_RUNTIME=1 -s EXPORTED_FUNCTIONS='["_sieve", "_exit"]' -s EXTRA_EXPORTED_RUNTIME_METHODS='["ccall", "cwrap"]' --js-library ../msieveweb_lib.js
 
 clean:
