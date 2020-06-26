@@ -14,6 +14,8 @@ $Id: driver.c 984 2015-03-28 16:26:48Z jasonp_sf $
 
 #include <common.h>
 
+extern void publishInputNumber(char *input_number);
+
 /*--------------------------------------------------------------------*/
 msieve_obj * msieve_obj_new(char *input_integer, uint32 flags,
 			    char *savefile_name, char *logfile_name,
@@ -204,6 +206,7 @@ void msieve_run(msieve_obj *obj) {
 #endif
 	logprintf(obj, "factoring %s (%d digits)\n", 
 				n_string, strlen(n_string));
+	publishInputNumber(n_string);
 
 	/* handle trivial inputs */
 
